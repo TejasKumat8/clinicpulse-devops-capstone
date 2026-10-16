@@ -1,0 +1,50 @@
+# ClinicPulse full local stack: docker compose up --build -> http://localhost:3000
+name: clinicpulse
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clinicpulse}
+      POSTGRES_USER: ${POSTGRES_USER:-clinicpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clinicpulse_secret}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    image: clinicpulse-backend:local
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-clinicpulse}:${POSTGRES_PASSWORD:-clinicpulse_secret}@postgres:5432/${POSTGRES_DB:-clinicpulse}
+      ENVIRONMENT: docker-compose
+      CLINIC_TIMEZONE: ${CLINIC_TIMEZONE:-Asia/Kolkata}
+      GIT_SHA: ${GIT_SHA:-local}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    image: clinicpulse-frontend:local
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:8080"
+
+volumes:
+  postgres-data:
