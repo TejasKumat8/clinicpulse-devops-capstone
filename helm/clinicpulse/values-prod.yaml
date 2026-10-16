@@ -1,0 +1,23 @@
+# Production overlay for Amazon EKS
+# Tag values are automatically injected during CI deployment via --set flags
+environment: production
+
+backend:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 60
+
+frontend:
+  replicaCount: 2
+
+postgres:
+  persistence:
+    size: 5Gi
+    storageClassName: gp3   # EBS CSI Driver gp3 storage class
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ""   # Routed dynamically by AWS Network Load Balancer (NLB) DNS

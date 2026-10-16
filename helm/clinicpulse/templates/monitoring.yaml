@@ -1,0 +1,37 @@
+{{- $sm := .Values.monitoring.serviceMonitor -}}
+{{- if and $sm.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "clinicpulse.backendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+    {{- with $sm.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "clinicpulse.selectorLabels" (dict "ctx" . "component" "backend") | nindent 6 }}
+  namespaceSelector:
+    matchNames: [{{ .Release.Namespace }}]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ $sm.interval }}
+{{- end }}
+{{- if .Values.monitoring.grafanaDashboard.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "clinicpulse.fullname" . }}-grafana-dashboard
+  labels:
+    {{- include "clinicpulse.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: ClinicPulse
+data:
+  clinicpulse.json: |-
+    {{- .Files.Get "dashboards/clinicpulse.json" | nindent 4 }}
+{{- end }}

@@ -1,0 +1,21 @@
+ClinicPulse {{ .Chart.AppVersion }} deployed successfully as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Backend image : {{ include "clinicpulse.image" (dict "image" .Values.backend.image "ctx" .) }}
+Frontend image: {{ include "clinicpulse.image" (dict "image" .Values.frontend.image "ctx" .) }}
+
+Verify deployment status:
+  kubectl get pods,svc,ingress,hpa -n {{ .Release.Namespace }}
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.host }}
+Application URL: http://{{ .Values.ingress.host }}
+API Swagger Docs: http://{{ .Values.ingress.host }}/docs
+{{- else }}
+Retrieve the Ingress controller load balancer address:
+  kubectl get ingress {{ include "clinicpulse.fullname" . }} -n {{ .Release.Namespace }}
+{{- end }}
+{{- else }}
+Port-forward the frontend:
+  kubectl port-forward svc/{{ include "clinicpulse.frontendName" . }} 3000:8080 -n {{ .Release.Namespace }}
+{{- end }}

@@ -1,0 +1,121 @@
+{{- $b := .Values.backend -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clinicpulse.backendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+spec:
+  {{- if not $b.autoscaling.enabled }}
+  replicas: {{ $b.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  selector:
+    matchLabels:
+      {{- include "clinicpulse.selectorLabels" (dict "ctx" . "component" "backend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "backend") | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/db-secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: backend
+          image: {{ include "clinicpulse.image" (dict "image" $b.image "ctx" .) | quote }}
+          imagePullPolicy: {{ $b.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+            readOnlyRootFilesystem: true
+          ports:
+            - name: http
+              containerPort: {{ $b.port }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "clinicpulse.dbSecretName" . }}
+                  key: database-url
+            - name: GIT_SHA
+              value: {{ default .Chart.AppVersion $b.image.tag | toString | quote }}
+            - name: ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: CLINIC_TIMEZONE
+              value: {{ .Values.clinicTimezone | quote }}
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 5
+            failureThreshold: 36
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 15
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml $b.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "clinicpulse.backendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "clinicpulse.selectorLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $b.port }}
+      targetPort: http
+{{- if $b.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "clinicpulse.backendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "clinicpulse.backendName" . }}
+  minReplicas: {{ $b.autoscaling.minReplicas }}
+  maxReplicas: {{ $b.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $b.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
+{{- if $b.podDisruptionBudget.minAvailable }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "clinicpulse.backendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+spec:
+  minAvailable: {{ $b.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "clinicpulse.selectorLabels" (dict "ctx" . "component" "backend") | nindent 6 }}
+{{- end }}

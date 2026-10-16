@@ -1,0 +1,13 @@
+apiVersion: v2
+name: clinicpulse
+description: ClinicPulse Healthcare & Triage Management System — React, FastAPI, PostgreSQL on Kubernetes
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fastapi
+  - react
+  - postgresql
+  - devops-capstone
+maintainers:
+  - name: Tejas Kumat

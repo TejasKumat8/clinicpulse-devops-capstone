@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clinicpulse
+  labels:
+    app.kubernetes.io/part-of: clinicpulse
+    # Enforce Kubernetes restricted Pod Security Standard (non-root execution, seccomp default)
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted

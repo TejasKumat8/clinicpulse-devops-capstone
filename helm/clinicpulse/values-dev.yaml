@@ -1,0 +1,29 @@
+# Local development overlay (Minikube, Kind, or Docker Desktop)
+environment: development
+
+backend:
+  image:
+    repository: clinicpulse-backend
+    tag: local
+    pullPolicy: IfNotPresent
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+
+frontend:
+  image:
+    repository: clinicpulse-frontend
+    tag: local
+    pullPolicy: IfNotPresent
+
+postgres:
+  auth:
+    password: clinicpulse-dev-secret
+  persistence:
+    size: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: clinicpulse.local

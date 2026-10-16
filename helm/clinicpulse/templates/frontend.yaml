@@ -1,0 +1,79 @@
+{{- $f := .Values.frontend -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clinicpulse.frontendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+spec:
+  replicas: {{ $f.replicaCount }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  selector:
+    matchLabels:
+      {{- include "clinicpulse.selectorLabels" (dict "ctx" . "component" "frontend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "frontend") | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        runAsUser: 101
+        runAsGroup: 101
+      containers:
+        - name: frontend
+          image: {{ include "clinicpulse.image" (dict "image" $f.image "ctx" .) | quote }}
+          imagePullPolicy: {{ $f.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            - name: BACKEND_URL
+              value: "http://{{ include "clinicpulse.backendName" . }}:{{ .Values.backend.port }}"
+          ports:
+            - name: http
+              containerPort: {{ $f.port }}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml $f.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "clinicpulse.frontendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "clinicpulse.selectorLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+{{- if $f.podDisruptionBudget.minAvailable }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "clinicpulse.frontendName" . }}
+  labels:
+    {{- include "clinicpulse.componentLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+spec:
+  minAvailable: {{ $f.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "clinicpulse.selectorLabels" (dict "ctx" . "component" "frontend") | nindent 6 }}
+{{- end }}

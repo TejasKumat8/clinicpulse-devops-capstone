@@ -1,0 +1,28 @@
+# `helm test clinicpulse -n clinicpulse` — validates backend /ready and frontend HTTP response
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "clinicpulse.fullname" . }}-test-connection
+  labels:
+    {{- include "clinicpulse.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  securityContext:
+    {{- toYaml .Values.podSecurityContext | nindent 4 }}
+    runAsUser: 65534
+  containers:
+    - name: smoke
+      image: busybox:1.37
+      securityContext:
+        {{- toYaml .Values.containerSecurityContext | nindent 8 }}
+      command: ["sh", "-c"]
+      args:
+        - |
+          set -e
+          wget -qO- http://{{ include "clinicpulse.backendName" . }}:{{ .Values.backend.port }}/ready
+          wget -qO- http://{{ include "clinicpulse.backendName" . }}:{{ .Values.backend.port }}/api/doctors > /dev/null
+          wget -qO- http://{{ include "clinicpulse.frontendName" . }}/ | grep -q ClinicPulse
+          echo "ClinicPulse smoke test passed"

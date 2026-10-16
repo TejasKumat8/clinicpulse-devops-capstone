@@ -1,0 +1,89 @@
+# Default configuration values for the ClinicPulse Helm chart.
+# Overlays: values-dev.yaml (local development / minikube) and values-prod.yaml (AWS EKS).
+
+environment: production
+clinicTimezone: Asia/Kolkata
+
+imagePullSecrets: []
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+# ─────────────────────────── Backend (FastAPI) ───────────────────────────
+backend:
+  image:
+    repository: ghcr.io/tejaskumat8/clinicpulse-backend
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  port: 8000
+  resources:
+    requests: {cpu: 100m, memory: 160Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 60
+  podDisruptionBudget:
+    minAvailable: 1
+
+# ─────────────────────────── Frontend (React + Nginx) ───────────────────────────
+frontend:
+  image:
+    repository: ghcr.io/tejaskumat8/clinicpulse-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  port: 8080
+  resources:
+    requests: {cpu: 25m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+  podDisruptionBudget:
+    minAvailable: 1
+
+# ─────────────────────────── PostgreSQL (StatefulSet) ───────────────────────────
+postgres:
+  image: postgres:17-alpine
+  auth:
+    database: clinicpulse
+    username: clinicpulse
+    password: ""
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClassName: ""
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 512Mi}
+
+# ─────────────────────────── Ingress ───────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 8m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+  host: ""
+  tls: []
+  backendPaths:
+    - /api
+    - /docs
+    - /openapi.json
+
+# ─────────────────────────── Observability ───────────────────────────
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    labels:
+      release: kube-prometheus-stack
+  grafanaDashboard:
+    enabled: true
