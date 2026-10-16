@@ -6,6 +6,7 @@ Create Date: 2026-10-16
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0002_create_appointments"

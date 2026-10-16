@@ -8,6 +8,7 @@ Create Date: 2026-10-16
 from datetime import UTC, datetime
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "0001_create_doctors"

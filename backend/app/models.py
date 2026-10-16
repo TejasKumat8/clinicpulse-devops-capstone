@@ -35,9 +35,7 @@ class Appointment(Base):
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     reason: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    appointment_type: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="IN_PERSON", index=True
-    )
+    appointment_type: Mapped[str] = mapped_column(String(20), nullable=False, default="IN_PERSON", index=True)
     notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="SCHEDULED", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
