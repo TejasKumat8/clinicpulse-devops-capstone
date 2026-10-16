@@ -1,0 +1,16 @@
+# Values for ingress-nginx controller deployment on Amazon EKS
+controller:
+  replicaCount: 1
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: kube-prometheus-stack
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}

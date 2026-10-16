@@ -1,0 +1,43 @@
+# Configuration for Prometheus Operator, Prometheus Server, and Grafana (kube-prometheus-stack)
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+    scrapeInterval: 15s
+    retention: 3d
+    resources:
+      requests: {cpu: 200m, memory: 512Mi}
+      limits: {memory: 1Gi}
+
+grafana:
+  enabled: true
+  defaultDashboardsTimezone: browser
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+  service:
+    type: ClusterIP
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 384Mi}
+
+kube-state-metrics:
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+
+prometheus-node-exporter:
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
