@@ -1,0 +1,29 @@
+# LAB 1 — ImagePullBackOff
+# The specified tag does not exist in the container registry. Pod enters ErrImagePull / ImagePullBackOff.
+#   kubectl apply -f troubleshooting/broken-image.yaml
+#   kubectl get pods -n clinicpulse -l lab=broken-image
+#   kubectl describe pod -n clinicpulse -l lab=broken-image
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lab-broken-image
+  namespace: clinicpulse
+  labels: {lab: broken-image}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {lab: broken-image}
+  template:
+    metadata:
+      labels: {lab: broken-image}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: backend
+          image: ghcr.io/tejaskumat8/clinicpulse-backend:non-existent-tag-v9.9.9
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}

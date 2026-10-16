@@ -1,0 +1,18 @@
+# LAB 2 — Service with no Endpoints (Label Selector Mismatch)
+# The Service selects component="api", whereas ClinicPulse backend pods carry component="backend".
+#   kubectl apply -f troubleshooting/broken-service.yaml
+#   kubectl get endpointslices -n clinicpulse -l kubernetes.io/service-name=lab-broken-service
+#   kubectl get pods -n clinicpulse --show-labels
+apiVersion: v1
+kind: Service
+metadata:
+  name: lab-broken-service
+  namespace: clinicpulse
+spec:
+  selector:
+    app.kubernetes.io/name: clinicpulse
+    app.kubernetes.io/component: api        # Bug: backend pods are labelled "backend"
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

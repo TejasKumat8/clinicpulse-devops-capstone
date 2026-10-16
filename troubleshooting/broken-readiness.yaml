@@ -1,0 +1,34 @@
+# LAB 3 — Running but not Ready (Port Mismatch in Probe)
+# Container listens on 8080 (unprivileged Nginx), but the probe targets port 80.
+# The Pod shows Running with READY 0/1; the Service never routes incoming traffic to it.
+#   kubectl apply -f troubleshooting/broken-readiness.yaml
+#   kubectl get pods -n clinicpulse -l lab=broken-readiness
+#   kubectl describe pod -n clinicpulse -l lab=broken-readiness
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lab-broken-readiness
+  namespace: clinicpulse
+  labels: {lab: broken-readiness}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {lab: broken-readiness}
+  template:
+    metadata:
+      labels: {lab: broken-readiness}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: web
+          image: nginxinc/nginx-unprivileged:1.29-alpine
+          ports: [{containerPort: 8080}]
+          readinessProbe:
+            httpGet: {path: /, port: 80}          # Bug: must probe port 8080
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
