@@ -1,0 +1,23 @@
+# Copy this template to terraform.tfvars (git-ignored) and populate variables.
+# Credentials are never hardcoded here — utilize `aws configure` or environment variables.
+
+aws_region   = "ap-south-1"
+project_name = "clinicpulse"
+environment  = "dev"
+owner        = "tejas-kumat"
+
+cluster_name       = "clinicpulse-eks"
+kubernetes_version = "1.31"
+
+# Network CIDR configuration
+vpc_cidr = "10.40.0.0/16"
+
+# EC2 Managed Node Group
+node_instance_types = ["t3.large"]
+node_min_size       = 2
+node_desired_size   = 2
+node_max_size       = 4
+
+# GitHub Actions OIDC deployment integration
+github_repository           = "TejasKumat8/clinicpulse-devops-capstone"
+create_github_oidc_provider = true
